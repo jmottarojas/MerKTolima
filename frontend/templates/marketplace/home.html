@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Merktolima - El Marketplace Colombiano{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">
+                    Bienvenido a <span class="logo-text">Merktolima</span>
+                </h1>
+                <p class="lead mb-4">
+                    El marketplace colombiano que conecta compradores y vendedores. 
+                    Descubre productos únicos y vende tus artículos de manera fácil y segura.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'marketplace:products' %}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-shopping-bag me-2"></i>Explorar Productos
+                    </a>
+                    {% if not request.session.user_id %}
+                        <a href="{% url 'marketplace:register' %}" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Únete Ahora
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="hero-image">
+                    <i class="fas fa-store" style="font-size: 15rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Características -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="fw-bold mb-3">¿Por qué elegir Merktolima?</h2>
+                <p class="text-muted">Ofrecemos la mejor experiencia de compra y venta online en Colombia</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <i class="fas fa-shield-alt fa-3x" style="color: var(--binotinto);"></i>
+                        </div>
+                        <h5 class="card-title">Compras Seguras</h5>
+                        <p class="card-text text-muted">
+                            Protección total en todas tus transacciones con nuestro sistema de pagos seguro.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <i class="fas fa-shipping-fast fa-3x" style="color: var(--amarillo-oro);"></i>
+                        </div>
+                        <h5 class="card-title">Envío Rápido</h5>
+                        <p class="card-text text-muted">
+                            Entrega rápida a toda Colombia con seguimiento en tiempo real de tus pedidos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <i class="fas fa-headset fa-3x" style="color: var(--binotinto);"></i>
+                        </div>
+                        <h5 class="card-title">Soporte 24/7</h5>
+                        <p class="card-text text-muted">
+                            Atención al cliente las 24 horas para resolver cualquier duda o problema.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Productos Destacados -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h2 class="fw-bold mb-3">Productos Destacados</h2>
+                <p class="text-muted">Descubre los productos más populares de nuestra plataforma</p>
+            </div>
+        </div>
+        
+        {% if featured_products %}
+            <div class="row g-4">
+                {% for product in featured_products %}
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card product-card h-100">
+                            <div class="position-relative">
+                                {% if product.images %}
+                                    <img src="{{ product.images.0 }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-image fa-3x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                                {% if product.inventory_quantity == 0 %}
+                                    <span class="position-absolute top-0 end-0 badge bg-danger m-2">Agotado</span>
+                                {% elif product.inventory_quantity <= product.low_stock_threshold %}
+                                    <span class="position-absolute top-0 end-0 badge bg-warning text-dark m-2">Pocas unidades</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <h6 class="card-title">{{ product.name }}</h6>
+                                <p class="card-text text-muted small flex-grow-1">
+                                    {{ product.description|truncatechars:80 }}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="price-tag">{{ product.price|format_cop_simple }}</span>
+                                    <span class="badge badge-custom">{{ product.category }}</span>
+                                </div>
+                                <div class="mt-3">
+                                    <a href="{% url 'marketplace:product_detail' product.id %}" class="btn btn-primary w-100">
+                                        <i class="fas fa-eye me-2"></i>Ver Detalles
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="row">
+                <div class="col-12 text-center">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>¡Bienvenido a Merktolima!</h5>
+                        <p class="mb-0">Explora nuestras categorías o regístrate como vendedor para comenzar a publicar tus productos.</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="row mt-5">
+            <div class="col-12 text-center">
+                <a href="{% url 'marketplace:products' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-arrow-right me-2"></i>Ver Todos los Productos
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categorías -->
+<section class="py-5">
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h2 class="fw-bold mb-3">Explora por Categorías</h2>
+                <p class="text-muted">Encuentra exactamente lo que buscas</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Electrónicos" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-laptop fa-3x" style="color: var(--binotinto);"></i>
+                            </div>
+                            <h5 class="card-title">Electrónicos</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Ropa" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-tshirt fa-3x" style="color: var(--amarillo-oro);"></i>
+                            </div>
+                            <h5 class="card-title">Ropa</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Hogar" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-home fa-3x" style="color: var(--binotinto);"></i>
+                            </div>
+                            <h5 class="card-title">Hogar</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Deportes" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-running fa-3x" style="color: var(--amarillo-oro);"></i>
+                            </div>
+                            <h5 class="card-title">Deportes</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Libros" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-book fa-3x" style="color: var(--binotinto);"></i>
+                            </div>
+                            <h5 class="card-title">Libros</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Juguetes" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-gamepad fa-3x" style="color: var(--amarillo-oro);"></i>
+                            </div>
+                            <h5 class="card-title">Juguetes</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Belleza" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-spa fa-3x" style="color: var(--binotinto);"></i>
+                            </div>
+                            <h5 class="card-title">Belleza</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <a href="{% url 'marketplace:products' %}?category=Automóviles" class="text-decoration-none">
+                    <div class="card text-center h-100 category-card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <i class="fas fa-car fa-3x" style="color: var(--amarillo-oro);"></i>
+                            </div>
+                            <h5 class="card-title">Automóviles</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5" style="background: linear-gradient(135deg, var(--binotinto-light) 0%, var(--amarillo-oro) 100%);">
+    <div class="container">
+        <div class="row text-center text-white">
+            <div class="col-12">
+                <h2 class="fw-bold mb-3">¿Tienes algo que vender?</h2>
+                <p class="lead mb-4">Únete a miles de vendedores que ya confían en Merktolima</p>
+                <a href="{% url 'marketplace:seller_dashboard' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-store me-2"></i>Comenzar a Vender
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Directo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        #preview img {
+            max-width: 150px;
+            margin: 5px;
+            border: 2px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Upload Directo</h1>
+    <p>Esta página prueba el upload de imágenes sin el formulario completo.</p>
+    
+    <div>
+        <h3>Paso 1: Selecciona Imágenes</h3>
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <div id="preview"></div>
+    </div>
+    
+    <div>
+        <h3>Paso 2: Sube las Imágenes</h3>
+        <button onclick="uploadImages()">📤 Subir Imágenes</button>
+        <button onclick="clearLogs()">🗑️ Limpiar Logs</button>
+    </div>
+    
+    <div>
+        <h3>Logs:</h3>
+        <div id="logs"></div>
+    </div>
+    
+    <div id="results" style="display: none;">
+        <h3>Resultados:</h3>
+        <div id="urls"></div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+        
+        // Preview de archivos seleccionados
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFiles = Array.from(e.target.files);
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            
+            log(`📁 Seleccionados ${selectedFiles.length} archivos`);
+            
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.title = file.name;
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+                log(`   ${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+            });
+        });
+        
+        async function uploadImages() {
+            if (selectedFiles.length === 0) {
+                log('❌ No hay archivos seleccionados', 'error');
+                return;
+            }
+            
+            log('🔄 Iniciando upload...', 'success');
+            
+            // Crear FormData
+            const formData = new FormData();
+            selectedFiles.forEach((file, index) => {
+                formData.append(`image_${index}`, file);
+                log(`📎 Agregado: image_${index} = ${file.name}`);
+            });
+            
+            // Obtener CSRF token
+            const csrfToken = getCookie('csrftoken');
+            log(`🔐 CSRF Token: ${csrfToken ? 'Presente' : 'AUSENTE'}`, csrfToken ? 'success' : 'error');
+            
+            try {
+                log('📡 Enviando a: http://localhost:8001/marketplace/api/upload-images/');
+                
+                const response = await fetch('http://localhost:8001/marketplace/api/upload-images/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    credentials: 'include'
+                });
+                
+                log(`📥 Respuesta: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Error del servidor: ${errorText.substring(0, 200)}`, 'error');
+                    return;
+                }
+                
+                const result = await response.json();
+                log('📦 Resultado:', 'success');
+                log(JSON.stringify(result, null, 2), 'success');
+                
+                if (result.success && result.image_urls) {
+                    log(`✅ Upload exitoso: ${result.count} imágenes`, 'success');
+                    
+                    // Mostrar URLs
+                    const urlsDiv = document.getElementById('urls');
+                    urlsDiv.innerHTML = '<h4>URLs Generadas:</h4>';
+                    result.image_urls.forEach((url, index) => {
+                        urlsDiv.innerHTML += `<div><strong>image_url_${index + 1}:</strong> ${url}</div>`;
+                        log(`🔗 URL ${index + 1}: ${url}`, 'success');
+                    });
+                    document.getElementById('results').style.display = 'block';
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function log(message, type = '') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log ' + type;
+            logEntry.textContent = message;
+            logsDiv.appendChild(logEntry);
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            document.getElementById('results').style.display = 'none';
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar Producto - Merktolima{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Producto
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nombre del Producto *</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ product.name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Categoría *</label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">Seleccionar categoría</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category }}" {% if category == product.category %}selected{% endif %}>{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required>{{ product.description }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Precio (COP) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="price" name="price" step="1" min="0" value="{{ product.price }}" required>
+                                        <span class="input-group-text">COP</span>
+                                    </div>
+                                    <div class="form-text">Precio en pesos colombianos</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">Cantidad en Inventario *</label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="{{ product.inventory_quantity }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Imagen del Producto</label>
+                            
+                            <!-- Imagen actual -->
+                            {% if product.images %}
+                                <div class="mb-3">
+                                    <label class="form-label">Imagen Actual:</label>
+                                    <div class="border rounded p-2" style="max-width: 200px;">
+                                        <img src="{{ product.images.0 }}" alt="{{ product.name }}" class="img-fluid rounded">
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <!-- Opciones de imagen -->
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="image_option" id="upload_image" value="upload" {% if not product.images %}checked{% endif %}>
+                                            <label class="form-check-label" for="upload_image">
+                                                <i class="fas fa-upload me-2"></i>Subir nueva imagen desde mi PC
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="image_option" id="url_image" value="url" {% if product.images %}checked{% endif %}>
+                                            <label class="form-check-label" for="url_image">
+                                                <i class="fas fa-link me-2"></i>Usar URL de imagen
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="image_option" id="keep_image" value="keep" {% if product.images %}checked{% endif %}>
+                                            <label class="form-check-label" for="keep_image">
+                                                <i class="fas fa-image me-2"></i>Mantener imagen actual
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Campo para subir archivo -->
+                                    <div id="upload_section" class="mb-3" style="display: none;">
+                                        <label for="image_file" class="form-label">Seleccionar Nueva Imagen</label>
+                                        <input type="file" class="form-control" id="image_file" name="image_file" accept="image/*">
+                                        <div class="form-text">Formatos soportados: JPG, PNG, GIF. Tamaño máximo: 5MB</div>
+                                        
+                                        <!-- Vista previa de la imagen -->
+                                        <div id="image_preview" class="mt-3" style="display: none;">
+                                            <label class="form-label">Vista Previa:</label>
+                                            <div class="border rounded p-2" style="max-width: 200px;">
+                                                <img id="preview_img" src="" alt="Vista previa" class="img-fluid rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Campo para URL -->
+                                    <div id="url_section" class="mb-3" style="display: none;">
+                                        <label for="image_url" class="form-label">URL de Imagen</label>
+                                        <input type="url" class="form-control" id="image_url" name="image_url" value="{% if product.images %}{{ product.images.0 }}{% endif %}" placeholder="https://ejemplo.com/imagen.jpg">
+                                        <div class="form-text">URL de la imagen principal del producto</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="low_stock_threshold" class="form-label">Umbral de Stock Bajo</label>
+                                    <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="0" value="{{ product.low_stock_threshold }}">
+                                    <div class="form-text">Se te notificará cuando el inventario esté por debajo de este número</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'marketplace:seller_products' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadRadio = document.getElementById('upload_image');
+    const urlRadio = document.getElementById('url_image');
+    const keepRadio = document.getElementById('keep_image');
+    const uploadSection = document.getElementById('upload_section');
+    const urlSection = document.getElementById('url_section');
+    const imageFile = document.getElementById('image_file');
+    const imagePreview = document.getElementById('image_preview');
+    const previewImg = document.getElementById('preview_img');
+    
+    // Función para cambiar entre opciones de imagen
+    function toggleImageOptions() {
+        if (uploadRadio.checked) {
+            uploadSection.style.display = 'block';
+            urlSection.style.display = 'none';
+            // Limpiar URL cuando se selecciona upload
+            document.getElementById('image_url').value = '';
+        } else if (urlRadio.checked) {
+            uploadSection.style.display = 'none';
+            urlSection.style.display = 'block';
+            // Limpiar archivo cuando se selecciona URL
+            imageFile.value = '';
+            imagePreview.style.display = 'none';
+        } else {
+            // Mantener imagen actual
+            uploadSection.style.display = 'none';
+            urlSection.style.display = 'none';
+            imageFile.value = '';
+            imagePreview.style.display = 'none';
+            document.getElementById('image_url').value = '';
+        }
+    }
+    
+    // Event listeners para los radio buttons
+    uploadRadio.addEventListener('change', toggleImageOptions);
+    urlRadio.addEventListener('change', toggleImageOptions);
+    keepRadio.addEventListener('change', toggleImageOptions);
+    
+    // Vista previa de imagen
+    imageFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validar tipo de archivo
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor selecciona un archivo de imagen válido.');
+                this.value = '';
+                imagePreview.style.display = 'none';
+                return;
+            }
+            
+            // Validar tamaño (5MB máximo)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('El archivo es demasiado grande. El tamaño máximo es 5MB.');
+                this.value = '';
+                imagePreview.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar vista previa
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    });
+    
+    // Inicializar estado
+    toggleImageOptions();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,519 @@
+﻿{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crear Producto - Merktolima{% endblock %}
+
+{% block extra_css %}
+<style>
+.category-fields { display: none; }
+.condition-fields { display: none; }
+.tab-btn { cursor: pointer; }
+.tab-btn.active { background-color: #0d6efd; color: white; }
+#image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.preview-item { position: relative; width: 100px; height: 100px; }
+.preview-item img { width: 100%; height: 100%; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px; }
+.preview-item .remove-btn { position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; line-height: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Crear Nuevo Producto</h3>
+                </div>
+                <div class="card-body">
+                    <form id="createProductForm" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nombre del Producto *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Categoría *</label>
+                                    <select class="form-select" id="category" name="category" required onchange="toggleCategoryFields(this.value)">
+                                        <option value="">Seleccionar categoría</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">Precio (COP) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="price" name="price" step="1" min="0" max="999999999" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">Cantidad *</label>
+                                    <input type="number" class="form-control" id="quantity" name="quantity" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="condition" class="form-label">Condición *</label>
+                                    <select class="form-select" id="condition" name="condition" required onchange="toggleConditionFields(this.value)">
+                                        <option value="">Seleccionar</option>
+                                        <option value="nuevo">Nuevo</option>
+                                        <option value="usado">Usado</option>
+                                        <option value="reacondicionado">Reacondicionado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos para condición usado/reacondicionado -->
+                        <div id="condition-used-fields" class="condition-fields">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="usage_time" class="form-label">Tiempo de uso</label>
+                                        <input type="text" class="form-control" id="usage_time" name="usage_time" placeholder="Ej: 6 meses, 1 año">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="condition_details" class="form-label">Detalles del estado</label>
+                                        <input type="text" class="form-control" id="condition_details" name="condition_details" placeholder="Ej: Rayones leves, funciona perfectamente">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Garantía -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="warranty" class="form-label">Garantía</label>
+                                    <select class="form-select" id="warranty" name="warranty" onchange="toggleWarrantyDate(this.value)">
+                                        <option value="sin_garantia">Sin garantía</option>
+                                        <option value="3_meses">3 meses</option>
+                                        <option value="6_meses">6 meses</option>
+                                        <option value="1_año">1 año</option>
+                                        <option value="2_años">2 años</option>
+                                        <option value="otra">Otra</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="warranty-date-field" style="display:none;">
+                                <div class="mb-3">
+                                    <label for="warranty_expiry" class="form-label">Vence garantía</label>
+                                    <input type="date" class="form-control" id="warranty_expiry" name="warranty_expiry">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos específicos de Automóviles / Motocicletas -->
+                        <div id="vehicle-fields" class="category-fields">
+                            <hr><h5 class="text-primary">Información del Vehículo</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="vehicle_year" class="form-label">Año</label>
+                                        <input type="number" class="form-control" id="vehicle_year" name="vehicle_year" min="1900" max="2030" placeholder="2020">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="mileage" class="form-label">Kilometraje</label>
+                                        <input type="number" class="form-control" id="mileage" name="mileage" min="0" placeholder="50000">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="fuel_type" class="form-label">Combustible</label>
+                                        <select class="form-select" id="fuel_type" name="fuel_type">
+                                            <option value="">Seleccionar</option>
+                                            <option value="gasolina">Gasolina</option>
+                                            <option value="diesel">Diesel</option>
+                                            <option value="electrico">Eléctrico</option>
+                                            <option value="hibrido">Híbrido</option>
+                                            <option value="gas">Gas</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="soat_expiry" class="form-label">Vencimiento SOAT</label>
+                                        <select class="form-select" id="soat_status" name="soat_status" onchange="toggleDateField('soat_expiry_date', this.value)">
+                                            <option value="no_tiene">No tiene</option>
+                                            <option value="vigente">Vigente</option>
+                                            <option value="vencido">Vencido</option>
+                                        </select>
+                                        <input type="date" class="form-control mt-2" id="soat_expiry_date" name="soat_expiry_date" style="display:none;">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tecnomecanica_status" class="form-label">Tecnomecánica</label>
+                                        <select class="form-select" id="tecnomecanica_status" name="tecnomecanica_status" onchange="toggleDateField('tecnomecanica_expiry_date', this.value)">
+                                            <option value="no_tiene">No tiene</option>
+                                            <option value="vigente">Vigente</option>
+                                            <option value="vencida">Vencida</option>
+                                        </select>
+                                        <input type="date" class="form-control mt-2" id="tecnomecanica_expiry_date" name="tecnomecanica_expiry_date" style="display:none;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos específicos de Electrónicos -->
+                        <div id="electronics-fields" class="category-fields">
+                            <hr><h5 class="text-primary">Especificaciones Técnicas</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="processor" class="form-label">Procesador</label>
+                                        <select class="form-select" id="processor" name="processor">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="intel_i3">Intel Core i3</option>
+                                            <option value="intel_i5">Intel Core i5</option>
+                                            <option value="intel_i7">Intel Core i7</option>
+                                            <option value="intel_i9">Intel Core i9</option>
+                                            <option value="amd_ryzen3">AMD Ryzen 3</option>
+                                            <option value="amd_ryzen5">AMD Ryzen 5</option>
+                                            <option value="amd_ryzen7">AMD Ryzen 7</option>
+                                            <option value="apple_m1">Apple M1</option>
+                                            <option value="apple_m2">Apple M2</option>
+                                            <option value="snapdragon">Snapdragon</option>
+                                            <option value="otro">Otro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="ram" class="form-label">Memoria RAM</label>
+                                        <select class="form-select" id="ram" name="ram">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="2gb">2 GB</option>
+                                            <option value="4gb">4 GB</option>
+                                            <option value="6gb">6 GB</option>
+                                            <option value="8gb">8 GB</option>
+                                            <option value="12gb">12 GB</option>
+                                            <option value="16gb">16 GB</option>
+                                            <option value="32gb">32 GB</option>
+                                            <option value="64gb">64 GB</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="storage" class="form-label">Almacenamiento</label>
+                                        <select class="form-select" id="storage" name="storage">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="32gb">32 GB</option>
+                                            <option value="64gb">64 GB</option>
+                                            <option value="128gb">128 GB</option>
+                                            <option value="256gb">256 GB</option>
+                                            <option value="512gb">512 GB</option>
+                                            <option value="1tb">1 TB</option>
+                                            <option value="2tb">2 TB</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="screen_size" class="form-label">Tamaño de Pantalla</label>
+                                        <select class="form-select" id="screen_size" name="screen_size">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="5">5 pulgadas</option>
+                                            <option value="6">6 pulgadas</option>
+                                            <option value="6.5">6.5 pulgadas</option>
+                                            <option value="7">7 pulgadas</option>
+                                            <option value="10">10 pulgadas</option>
+                                            <option value="13">13 pulgadas</option>
+                                            <option value="14">14 pulgadas</option>
+                                            <option value="15">15 pulgadas</option>
+                                            <option value="17">17 pulgadas</option>
+                                            <option value="24">24 pulgadas</option>
+                                            <option value="27">27 pulgadas</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="operating_system" class="form-label">Sistema Operativo</label>
+                                        <select class="form-select" id="operating_system" name="operating_system">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="windows11">Windows 11</option>
+                                            <option value="windows10">Windows 10</option>
+                                            <option value="macos">macOS</option>
+                                            <option value="android">Android</option>
+                                            <option value="ios">iOS / iPadOS</option>
+                                            <option value="linux">Linux</option>
+                                            <option value="chromeos">ChromeOS</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="connectivity" class="form-label">Conectividad</label>
+                                        <select class="form-select" id="connectivity" name="connectivity">
+                                            <option value="no_aplica">No aplica</option>
+                                            <option value="wifi">WiFi</option>
+                                            <option value="wifi_bluetooth">WiFi + Bluetooth</option>
+                                            <option value="wifi_4g">WiFi + 4G</option>
+                                            <option value="wifi_5g">WiFi + 5G</option>
+                                            <option value="ethernet">Ethernet</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Imágenes del producto -->
+                        <hr>
+                        <div class="mb-4">
+                            <label class="form-label">Imágenes del Producto</label>
+                            <div class="btn-group mb-3" role="group">
+                                <button type="button" class="btn btn-outline-primary tab-btn active" id="tab-upload" onclick="switchTab('upload')">
+                                    <i class="fas fa-upload me-1"></i>Subir desde PC
+                                </button>
+                                <button type="button" class="btn btn-outline-primary tab-btn" id="tab-url" onclick="switchTab('url')">
+                                    <i class="fas fa-link me-1"></i>Usar URL
+                                </button>
+                            </div>
+
+                            <!-- Tab subir archivo -->
+                            <div id="tab-upload-content">
+                                <input type="file" class="form-control" id="image_files" accept="image/*" multiple>
+                                <div class="form-text">Puedes seleccionar múltiples imágenes. Formatos: JPG, PNG, GIF. Máx 5MB cada una.</div>
+                                <div id="image-preview-container"></div>
+                                <input type="hidden" id="uploaded_image_urls" name="uploaded_image_urls" value="">
+                            </div>
+
+                            <!-- Tab URL -->
+                            <div id="tab-url-content" style="display:none;">
+                                <div class="input-group mb-2">
+                                    <input type="url" class="form-control" id="image_url_input" placeholder="https://ejemplo.com/imagen.jpg">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="addImageUrl()">Agregar</button>
+                                </div>
+                                <div id="url-list"></div>
+                                <input type="hidden" id="url_image_urls" name="url_image_urls" value="">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="low_stock_threshold" class="form-label">Umbral de Stock Bajo</label>
+                                    <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" min="0" value="10">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'marketplace:seller_products' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Crear Producto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var currentTab = 'upload';
+var uploadedUrls = [];
+var urlImages = [];
+
+function toggleConditionFields(value) {
+    var fields = document.getElementById('condition-used-fields');
+    if (value === 'usado' || value === 'reacondicionado') {
+        fields.style.display = 'block';
+    } else {
+        fields.style.display = 'none';
+    }
+}
+
+function toggleCategoryFields(value) {
+    var vehicleFields = document.getElementById('vehicle-fields');
+    var electronicsFields = document.getElementById('electronics-fields');
+    vehicleFields.style.display = 'none';
+    electronicsFields.style.display = 'none';
+    if (value === 'Automóviles' || value === 'Motocicletas') {
+        vehicleFields.style.display = 'block';
+    } else if (value === 'Electrónicos') {
+        electronicsFields.style.display = 'block';
+    }
+}
+
+function toggleDateField(fieldId, value) {
+    var field = document.getElementById(fieldId);
+    if (value === 'vigente') {
+        field.style.display = 'block';
+    } else {
+        field.style.display = 'none';
+        field.value = '';
+    }
+}
+
+function toggleWarrantyDate(value) {
+    var field = document.getElementById('warranty-date-field');
+    if (value === 'otra') {
+        field.style.display = 'block';
+    } else {
+        field.style.display = 'none';
+    }
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    var uploadContent = document.getElementById('tab-upload-content');
+    var urlContent = document.getElementById('tab-url-content');
+    var tabUpload = document.getElementById('tab-upload');
+    var tabUrl = document.getElementById('tab-url');
+    if (tab === 'upload') {
+        uploadContent.style.display = 'block';
+        urlContent.style.display = 'none';
+        tabUpload.classList.add('active');
+        tabUrl.classList.remove('active');
+    } else {
+        uploadContent.style.display = 'none';
+        urlContent.style.display = 'block';
+        tabUpload.classList.remove('active');
+        tabUrl.classList.add('active');
+    }
+}
+
+function addImageUrl() {
+    var input = document.getElementById('image_url_input');
+    var url = input.value.trim();
+    if (!url) return;
+    urlImages.push(url);
+    updateUrlList();
+    input.value = '';
+}
+
+function removeUrlImage(index) {
+    urlImages.splice(index, 1);
+    updateUrlList();
+}
+
+function updateUrlList() {
+    var list = document.getElementById('url-list');
+    var html = '';
+    for (var i = 0; i < urlImages.length; i++) {
+        html += '<div class="d-flex align-items-center mb-1">';
+        html += '<img src="' + urlImages[i] + '" style="width:50px;height:50px;object-fit:contain;border:1px solid #dee2e6;border-radius:4px;margin-right:8px;">';
+        html += '<span class="text-truncate flex-grow-1 small">' + urlImages[i] + '</span>';
+        html += '<button type="button" class="btn btn-sm btn-danger ms-2" onclick="removeUrlImage(' + i + ')">X</button>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+    document.getElementById('url_image_urls').value = urlImages.join(',');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var imageFilesInput = document.getElementById('image_files');
+    imageFilesInput.addEventListener('change', function(e) {
+        var files = e.target.files;
+        for (var i = 0; i < files.length; i++) {
+            (function(file) {
+                if (!file.type.match('image.*')) return;
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('El archivo ' + file.name + ' es demasiado grande (máx 5MB).');
+                    return;
+                }
+                var formData = new FormData();
+                formData.append('images', file);
+                var csrfToken = document.cookie.match(/csrftoken=([^;]+)/);
+                var csrfValue = csrfToken ? csrfToken[1] : '';
+                fetch('/api/upload-images/', {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': csrfValue},
+                    body: formData
+                }).then(function(response) {
+                    return response.json();
+                }).then(function(data) {
+                    if (data.urls && data.urls.length > 0) {
+                        uploadedUrls.push(data.urls[0]);
+                        document.getElementById('uploaded_image_urls').value = uploadedUrls.join(',');
+                        addPreviewImage(data.urls[0], uploadedUrls.length - 1);
+                    }
+                }).catch(function(err) {
+                    console.error('Error subiendo imagen:', err);
+                    alert('Error al subir la imagen. Intenta de nuevo.');
+                });
+            })(files[i]);
+        }
+        // Reset input so same file can be selected again
+        e.target.value = '';
+    });
+
+    var form = document.getElementById('createProductForm');
+    form.addEventListener('submit', function(e) {
+        // Combine all image URLs
+        var allUrls = [];
+        if (currentTab === 'upload') {
+            allUrls = uploadedUrls;
+        } else {
+            allUrls = urlImages;
+        }
+        // Set a hidden field with all image URLs for the backend
+        var hiddenField = document.getElementById('all_image_urls');
+        if (!hiddenField) {
+            hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = 'all_image_urls';
+            hiddenField.id = 'all_image_urls';
+            form.appendChild(hiddenField);
+        }
+        hiddenField.value = allUrls.join(',');
+    });
+});
+
+function addPreviewImage(url, index) {
+    var container = document.getElementById('image-preview-container');
+    var div = document.createElement('div');
+    div.className = 'preview-item';
+    div.id = 'preview-' + index;
+    div.innerHTML = '<img src="' + url + '" alt="preview"><button type="button" class="remove-btn" onclick="removeUploadedImage(' + index + ')">X</button>';
+    container.appendChild(div);
+}
+
+function removeUploadedImage(index) {
+    uploadedUrls.splice(index, 1);
+    document.getElementById('uploaded_image_urls').value = uploadedUrls.join(',');
+    // Rebuild previews
+    var container = document.getElementById('image-preview-container');
+    container.innerHTML = '';
+    for (var i = 0; i < uploadedUrls.length; i++) {
+        addPreviewImage(uploadedUrls[i], i);
+    }
+}
+</script>
+{% endblock %}

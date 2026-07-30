@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}{{ product.name }} - Merktolima{% endblock %}
+
+{% block extra_css %}
+<style>
+.product-image-container {
+    height: 420px;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.product-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: object-fit 0.2s;
+}
+.product-image.zoom-mode {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.thumbnail-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: #f8f9fa;
+    transition: border-color 0.2s;
+}
+.thumbnail-img:hover, .thumbnail-img.active {
+    border-color: #0d6efd;
+}
+.image-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'marketplace:home' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'marketplace:products' %}">Productos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'marketplace:products' %}?category={{ product.category }}">{{ product.category }}</a></li>
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Imagen del producto -->
+        <div class="col-lg-6 mb-4">
+            {% if product.images %}
+                <div class="product-image-container" id="mainImageContainer">
+                    <img id="mainImage" class="product-image" src="{{ product.images.0 }}" alt="{{ product.name }}">
+                </div>
+                <div class="image-controls">
+                    <small class="text-muted">Vista:</small>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleImageFit()" id="fitToggleBtn">
+                        <i class="fas fa-expand-alt me-1"></i>Ajustar
+                    </button>
+                    {% if product.images|length > 1 %}
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="prevImage()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="imageCounter" class="small text-muted">1 / {{ product.images|length }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="nextImage()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    {% endif %}
+                </div>
+                {% if product.images|length > 1 %}
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% for image in product.images %}
+                            <img src="{{ image }}" class="thumbnail-img {% if forloop.first %}active{% endif %}"
+                                 alt="{{ product.name }}" onclick="setImage({{ forloop.counter0 }}, this)">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="product-image-container">
+                    <i class="fas fa-image fa-5x text-muted"></i>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Información del producto -->
+        <div class="col-lg-6">
+            <div class="mb-3">
+                <span class="badge badge-custom mb-2">{{ product.category }}</span>
+                <h1 class="fw-bold">{{ product.name }}</h1>
+            </div>
+
+            <div class="mb-4">
+                <h2 class="price-tag d-inline-block">{{ product.price|format_cop }}</h2>
+            </div>
+
+            <div class="mb-4">
+                {% if product.inventory_quantity > 0 %}
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span class="text-success fw-semibold">En stock</span>
+                        <span class="text-muted ms-2">({{ product.inventory_quantity }} disponibles)</span>
+                    </div>
+                    {% if product.inventory_quantity <= product.low_stock_threshold %}
+                        <small class="text-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>¡Pocas unidades disponibles!
+                        </small>
+                    {% endif %}
+                {% else %}
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-times-circle text-danger me-2"></i>
+                        <span class="text-danger fw-semibold">Agotado</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <h5>Descripción</h5>
+                <p class="text-muted">{{ product.description }}</p>
+            </div>
+
+            {% if request.session.user_id %}
+                {% if product.inventory_quantity > 0 %}
+                    <form method="post" action="{% url 'marketplace:add_to_cart' product.id %}">
+                        {% csrf_token %}
+                        <div class="row g-3 mb-4">
+                            <div class="col-4">
+                                <label for="quantity" class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity"
+                                       value="1" min="1" max="{{ product.inventory_quantity }}" required>
+                            </div>
+                            <div class="col-8 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                        <i class="fas fa-times me-2"></i>Producto Agotado
+                    </button>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <a href="{% url 'marketplace:login' %}" class="alert-link">Inicia sesión</a>
+                    para agregar productos al carrito
+                </div>
+            {% endif %}
+
+            <!-- Chat con vendedor -->
+            {% if request.session.user_id and request.session.user_role == 'buyer' %}
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Contactar al Vendedor</h6>
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#chatSection">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse" id="chatSection">
+                    <div class="card-body">
+                        <div id="chat-messages" style="height:200px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:10px;margin-bottom:10px;background:#fafafa;">
+                            <p class="text-muted text-center small">Cargando mensajes...</p>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="chat-input" class="form-control" placeholder="Escribe tu mensaje...">
+                            <button class="btn btn-primary" onclick="sendChatMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">No compartas datos de contacto personales.</small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="fas fa-store me-2"></i>Información del Vendedor</h6>
+                    <p class="card-text">
+                        <strong>ID:</strong> {{ product.seller_id }}<br>
+                        <small class="text-muted">Vendedor verificado en Merktolima</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if related_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">Productos Relacionados</h3>
+            <div class="row g-4">
+                {% for related in related_products %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card product-card h-100">
+                        <div style="height:200px;background:#f8f9fa;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                            {% if related.images %}
+                                <img src="{{ related.images.0 }}" alt="{{ related.name }}"
+                                     style="max-width:100%;max-height:100%;object-fit:contain;">
+                            {% else %}
+                                <i class="fas fa-image fa-3x text-muted"></i>
+                            {% endif %}
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">{{ related.name }}</h6>
+                            <p class="card-text text-muted small flex-grow-1">{{ related.description|truncatechars:60 }}</p>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="price-tag">{{ related.price|format_cop_simple }}</span>
+                                <span class="badge badge-custom">{{ related.category }}</span>
+                            </div>
+                            <a href="{% url 'marketplace:product_detail' related.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-eye me-2"></i>Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var productImages = [{% for img in product.images %}"{{ img }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+var currentImageIndex = 0;
+var isZoomMode = false;
+
+function setImage(index, thumbEl) {
+    currentImageIndex = index;
+    var mainImg = document.getElementById('mainImage');
+    if (mainImg) {
+        mainImg.src = productImages[index];
+        updateCounter();
+        // Update active thumbnail
+        var thumbs = document.querySelectorAll('.thumbnail-img');
+        for (var i = 0; i < thumbs.length; i++) {
+            thumbs[i].classList.remove('active');
+        }
+        if (thumbEl) thumbEl.classList.add('active');
+    }
+}
+
+function nextImage() {
+    if (productImages.length === 0) return;
+    currentImageIndex = (currentImageIndex + 1) % productImages.length;
+    setImage(currentImageIndex, document.querySelectorAll('.thumbnail-img')[currentImageIndex]);
+}
+
+function prevImage() {
+    if (productImages.length === 0) return;
+    currentImageIndex = (currentImageIndex - 1 + productImages.length) % productImages.length;
+    setImage(currentImageIndex, document.querySelectorAll('.thumbnail-img')[currentImageIndex]);
+}
+
+function updateCounter() {
+    var counter = document.getElementById('imageCounter');
+    if (counter) {
+        counter.textContent = (currentImageIndex + 1) + ' / ' + productImages.length;
+    }
+}
+
+function toggleImageFit() {
+    var mainImg = document.getElementById('mainImage');
+    var btn = document.getElementById('fitToggleBtn');
+    if (!mainImg) return;
+    isZoomMode = !isZoomMode;
+    if (isZoomMode) {
+        mainImg.classList.add('zoom-mode');
+        btn.innerHTML = '<i class="fas fa-compress-alt me-1"></i>Contener';
+    } else {
+        mainImg.classList.remove('zoom-mode');
+        btn.innerHTML = '<i class="fas fa-expand-alt me-1"></i>Ajustar';
+    }
+}
+
+// Chat functionality
+var productId = "{{ product.id }}";
+var chatRefreshInterval = null;
+
+function loadChatMessages() {
+    fetch('/marketplace/api/chat/messages/?product_id=' + productId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var container = document.getElementById('chat-messages');
+            if (!container) return;
+            if (data.messages && data.messages.length > 0) {
+                var html = '';
+                for (var i = 0; i < data.messages.length; i++) {
+                    var msg = data.messages[i];
+                    var isMe = msg.sender_role === 'buyer';
+                    html += '<div class="mb-2 ' + (isMe ? 'text-end' : '') + '">';
+                    html += '<span class="badge ' + (isMe ? 'bg-primary' : 'bg-secondary') + ' mb-1">' + (isMe ? 'Tú' : 'Vendedor') + '</span><br>';
+                    html += '<span class="p-2 rounded ' + (isMe ? 'bg-primary text-white' : 'bg-light') + '" style="display:inline-block;max-width:80%;">' + msg.content + '</span>';
+                    html += '</div>';
+                }
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            } else {
+                container.innerHTML = '<p class="text-muted text-center small">Sé el primero en escribir al vendedor.</p>';
+            }
+        })
+        .catch(function() {});
+}
+
+function sendChatMessage() {
+    var input = document.getElementById('chat-input');
+    var message = input.value.trim();
+    if (!message) return;
+    fetch('/marketplace/api/chat/send/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify({product_id: productId, message: message})
+    }).then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            input.value = '';
+            loadChatMessages();
+        } else {
+            alert(data.error || 'Error al enviar mensaje');
+        }
+    }).catch(function() { alert('Error de conexión'); });
+}
+
+function getCookie(name) {
+    var value = '; ' + document.cookie;
+    var parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var chatSection = document.getElementById('chatSection');
+    if (chatSection) {
+        chatSection.addEventListener('shown.bs.collapse', function() {
+            loadChatMessages();
+            chatRefreshInterval = setInterval(loadChatMessages, 10000);
+        });
+        chatSection.addEventListener('hidden.bs.collapse', function() {
+            if (chatRefreshInterval) clearInterval(chatRefreshInterval);
+        });
+    }
+    var chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+    }
+});
+</script>
+{% endblock %}

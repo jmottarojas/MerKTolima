@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Verificar Email - Merktolima{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-envelope-open-text fa-4x" style="color: var(--binotinto);"></i>
+                        </div>
+                        <h2 class="fw-bold" style="color: var(--binotinto);">
+                            Verificar Email
+                        </h2>
+                        <p class="text-muted">
+                            Hemos enviado un código de verificación a<br>
+                            <strong>{{ email }}</strong>
+                        </p>
+                    </div>
+                    
+                    <!-- Formulario de verificación -->
+                    <form method="post" id="verificationForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ email }}">
+                        
+                        <div class="mb-4">
+                            <label for="verification_code" class="form-label fw-semibold text-center d-block">
+                                Código de Verificación
+                            </label>
+                            <div class="d-flex justify-content-center">
+                                <input type="text" class="form-control text-center fs-3 fw-bold" 
+                                       id="verification_code" name="verification_code" 
+                                       placeholder="000000" maxlength="6" required
+                                       style="max-width: 200px; letter-spacing: 0.5rem;">
+                            </div>
+                            <div class="form-text text-center">
+                                Ingresa el código de 6 dígitos que recibiste por email
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg" id="verifyBtn">
+                                <i class="fas fa-check-circle me-2"></i>Verificar Email
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Reenviar código -->
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-2">¿No recibiste el código?</p>
+                        <button type="button" class="btn btn-outline-secondary" id="resendBtn" onclick="resendCode()">
+                            <i class="fas fa-redo me-2"></i>Reenviar Código
+                        </button>
+                        <div class="mt-2">
+                            <small class="text-muted" id="resendTimer"></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Cambiar email -->
+                    <div class="text-center">
+                        <p class="text-muted mb-0">
+                            ¿Email incorrecto? 
+                            <a href="{% url 'marketplace:register' %}" class="text-decoration-none fw-semibold" 
+                               style="color: var(--binotinto);">
+                                Cambiar email
+                            </a>
+                        </p>
+                    </div>
+                    
+                    <!-- Información adicional -->
+                    <div class="alert alert-info mt-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>Consejos:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Revisa tu carpeta de spam o correo no deseado</li>
+                                    <li>El código expira en 10 minutos</li>
+                                    <li>Puedes solicitar un nuevo código si es necesario</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let resendCooldown = 60; // 60 segundos de cooldown
+let resendTimer = null;
+
+// Auto-focus en el campo de código
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('verification_code').focus();
+    
+    // Formatear input del código (solo números)
+    document.getElementById('verification_code').addEventListener('input', function(e) {
+        // Solo permitir números
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        // Auto-submit cuando se completen 6 dígitos
+        if (this.value.length === 6) {
+            // Pequeño delay para mejor UX - auto-submit feature
+            setTimeout(() => {
+                document.getElementById('verificationForm').submit();
+            }, 500);
+        }
+    });
+    
+    // Iniciar timer de reenvío
+    startResendTimer();
+});
+
+function startResendTimer() {
+    const resendBtn = document.getElementById('resendBtn');
+    const timerElement = document.getElementById('resendTimer');
+    
+    resendBtn.disabled = true;
+    resendCooldown = 60;
+    
+    resendTimer = setInterval(() => {
+        resendCooldown--;
+        timerElement.textContent = `Puedes reenviar en ${resendCooldown} segundos`;
+        
+        if (resendCooldown <= 0) {
+            clearInterval(resendTimer);
+            resendBtn.disabled = false;
+            timerElement.textContent = '';
+        }
+    }, 1000);
+}
+
+async function resendCode() {
+    const email = document.querySelector('input[name="email"]').value;
+    const resendBtn = document.getElementById('resendBtn');
+    
+    // Deshabilitar botón temporalmente
+    resendBtn.disabled = true;
+    resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+    
+    try {
+        const response = await fetch('{% url "marketplace:resend_verification" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ email: email })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Mostrar mensaje de éxito
+            showMessage('Código reenviado exitosamente', 'success');
+            
+            // Reiniciar timer
+            startResendTimer();
+        } else {
+            showMessage(result.error || 'Error al reenviar código', 'error');
+            resendBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error de conexión. Inténtalo de nuevo.', 'error');
+        resendBtn.disabled = false;
+    } finally {
+        resendBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Reenviar Código';
+    }
+}
+
+function showMessage(message, type) {
+    // Crear elemento de mensaje
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insertar antes del formulario
+    const form = document.getElementById('verificationForm');
+    form.parentNode.insertBefore(alertDiv, form);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Manejar envío del formulario
+document.getElementById('verificationForm').addEventListener('submit', function(e) {
+    const verifyBtn = document.getElementById('verifyBtn');
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verificando...';
+});
+</script>
+
+<style>
+.form-control:focus {
+    border-color: var(--binotinto);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+#verification_code {
+    font-family: 'Courier New', monospace;
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+}
+</style>
+{% endblock %}

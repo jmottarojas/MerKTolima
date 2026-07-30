@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Subida de Imágenes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 2px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .preview {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .preview img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log div {
+            margin: 2px 0;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test de Subida de Imágenes</h1>
+        <p>Este es un test simple para verificar que la subida de imágenes funciona correctamente.</p>
+        
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <button onclick="uploadImages()">Subir Imágenes</button>
+        
+        <div class="preview" id="preview"></div>
+        
+        <h3>Log de Consola:</h3>
+        <div class="log" id="log"></div>
+        
+        <h3>URLs Generadas:</h3>
+        <div id="urls" style="background: #e8f5e9; padding: 10px; border-radius: 4px; margin-top: 10px;"></div>
+    </div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        const previewDiv = document.getElementById('preview');
+        const urlsDiv = document.getElementById('urls');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Preview de archivos seleccionados
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            log(`📁 Seleccionados ${files.length} archivos`, 'info');
+            
+            previewDiv.innerHTML = '';
+            Array.from(files).forEach((file, index) => {
+                log(`  - ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.title = file.name;
+                    previewDiv.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+        
+        async function uploadImages() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                log('❌ No hay archivos seleccionados', 'error');
+                alert('Por favor selecciona al menos un archivo');
+                return;
+            }
+            
+            log(`🔄 Iniciando subida de ${files.length} archivos...`, 'info');
+            
+            const formData = new FormData();
+            Array.from(files).forEach((file, index) => {
+                formData.append(`image_${index}`, file);
+                log(`📎 Agregado: image_${index} = ${file.name}`, 'info');
+            });
+            
+            try {
+                // Obtener CSRF token
+                const csrfToken = getCookie('csrftoken');
+                log(`🔐 CSRF Token: ${csrfToken ? 'Presente' : 'Ausente'}`, csrfToken ? 'success' : 'error');
+                
+                log('📡 Enviando petición a /marketplace/api/upload-images/...', 'info');
+                
+                const response = await fetch('/marketplace/api/upload-images/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                log(`📥 Respuesta: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Error del servidor: ${errorText}`, 'error');
+                    throw new Error(`Error ${response.status}: ${errorText}`);
+                }
+                
+                const result = await response.json();
+                log(`📦 Resultado: ${JSON.stringify(result)}`, 'success');
+                
+                if (result.success) {
+                    log(`✅ ¡Subida exitosa! ${result.count} imágenes`, 'success');
+                    
+                    // Mostrar URLs
+                    urlsDiv.innerHTML = '<strong>URLs generadas:</strong><br>';
+                    result.image_urls.forEach((url, index) => {
+                        urlsDiv.innerHTML += `${index + 1}. <a href="${url}" target="_blank">${url}</a><br>`;
+                        log(`🔗 URL ${index + 1}: ${url}`, 'success');
+                    });
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    alert(`Error: ${result.error}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                alert(`Error al subir imágenes: ${error.message}`);
+            }
+        }
+        
+        // Función para obtener cookie CSRF
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        log('✅ Página cargada. Selecciona archivos y haz click en "Subir Imágenes"', 'success');
+    </script>
+</body>
+</html>

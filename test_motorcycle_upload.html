@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Motocicletas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .file-input { margin: 10px 0; }
+        .preview { margin: 10px 0; }
+        .preview img { max-width: 200px; max-height: 200px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test de Carga de Imágenes - Motocicletas</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Input de archivo básico</h2>
+        <input type="file" id="basicFileInput" accept="image/*" multiple class="file-input">
+        <div id="basicPreview" class="preview"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Simulación del formulario de producto</h2>
+        <select id="categorySelect">
+            <option value="">Selecciona categoría</option>
+            <option value="Electrónicos">Electrónicos</option>
+            <option value="Automóviles">Automóviles</option>
+            <option value="Motocicletas">Motocicletas</option>
+        </select>
+        <br><br>
+        <input type="file" id="productFileInput" accept="image/*" multiple class="file-input">
+        <div id="productPreview" class="preview"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Logs de Debug</h2>
+        <div id="debugLogs" style="background: #f5f5f5; padding: 10px; font-family: monospace; white-space: pre-wrap;"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const debugLogs = document.getElementById('debugLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            debugLogs.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+        
+        function createPreview(file, container) {
+            log(`Creando preview para: ${file.name} (${file.type}, ${file.size} bytes)`);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = file.name;
+                img.style.maxWidth = '200px';
+                img.style.maxHeight = '200px';
+                img.style.margin = '5px';
+                img.style.border = '1px solid #ccc';
+                
+                const div = document.createElement('div');
+                div.style.display = 'inline-block';
+                div.style.margin = '5px';
+                div.appendChild(img);
+                
+                const label = document.createElement('div');
+                label.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                label.style.fontSize = '12px';
+                label.style.textAlign = 'center';
+                div.appendChild(label);
+                
+                container.appendChild(div);
+                log(`Preview creado exitosamente para: ${file.name}`);
+            };
+            
+            reader.onerror = function() {
+                log(`ERROR: No se pudo leer el archivo: ${file.name}`);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Test 1: Input básico
+        document.getElementById('basicFileInput').addEventListener('change', function(e) {
+            log(`=== TEST 1: Input básico ===`);
+            log(`Archivos seleccionados: ${e.target.files.length}`);
+            
+            const container = document.getElementById('basicPreview');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < e.target.files.length; i++) {
+                const file = e.target.files[i];
+                log(`Archivo ${i + 1}: ${file.name}`);
+                createPreview(file, container);
+            }
+        });
+        
+        // Test 2: Simulación del formulario
+        document.getElementById('productFileInput').addEventListener('change', function(e) {
+            const category = document.getElementById('categorySelect').value;
+            log(`=== TEST 2: Formulario de producto ===`);
+            log(`Categoría seleccionada: ${category}`);
+            log(`Archivos seleccionados: ${e.target.files.length}`);
+            
+            const container = document.getElementById('productPreview');
+            container.innerHTML = '';
+            
+            if (!category) {
+                log(`ADVERTENCIA: No se ha seleccionado categoría`);
+            }
+            
+            for (let i = 0; i < e.target.files.length; i++) {
+                const file = e.target.files[i];
+                log(`Archivo ${i + 1}: ${file.name} (categoría: ${category})`);
+                createPreview(file, container);
+            }
+        });
+        
+        // Cambio de categoría
+        document.getElementById('categorySelect').addEventListener('change', function(e) {
+            log(`Categoría cambiada a: ${e.target.value}`);
+        });
+        
+        log('Test de carga de imágenes iniciado');
+    </script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+                <a href="{% url 'marketplace:seller_chats' %}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div class="flex-grow-1">
+                    <h1 class="fw-bold mb-1">
+                        <i class="fas fa-comments me-2" style="color: var(--binotinto);"></i>
+                        Chat del Producto
+                    </h1>
+                    <p class="text-muted mb-0">{{ product.name }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Información del producto -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-box me-2"></i>Información del Producto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if product.images %}
+                        <img src="{{ product.images.0 }}" 
+                             class="img-fluid rounded mb-3" 
+                             alt="{{ product.name }}"
+                             style="width: 100%; height: 200px; object-fit: cover;">
+                    {% endif %}
+                    
+                    <h6 class="fw-bold">{{ product.name }}</h6>
+                    <p class="text-muted mb-2">{{ product.category }}</p>
+                    <p class="fw-bold text-success mb-3">${{ product.price|floatformat:0 }} COP</p>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'marketplace:product_detail' product.id %}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>Ver Producto
+                        </a>
+                        <a href="{% url 'marketplace:edit_product' product.id %}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment-dots me-2"></i>Conversación
+                    </h5>
+                    <span class="badge bg-info">{{ messages|length }} mensaje{{ messages|length|pluralize }}</span>
+                </div>
+                
+                <div class="card-body" style="height: 500px; overflow-y: auto;" id="chatMessages">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="mb-3 {% if message.sender_id == request.session.user_id %}text-end{% endif %}">
+                                <div class="d-inline-block p-3 rounded 
+                                    {% if message.sender_id == request.session.user_id %}
+                                        bg-primary text-white
+                                    {% else %}
+                                        bg-light
+                                    {% endif %}"
+                                    style="max-width: 70%;">
+                                    
+                                    <div class="mb-1">{{ message.message }}</div>
+                                    
+                                    {% if message.is_filtered %}
+                                        <div class="mt-2">
+                                            <small class="badge bg-warning text-dark">
+                                                <i class="fas fa-filter me-1"></i>Mensaje filtrado
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-2">
+                                        <small class="
+                                            {% if message.sender_id == request.session.user_id %}
+                                                text-white-50
+                                            {% else %}
+                                                text-muted
+                                            {% endif %}">
+                                            {{ message.created_at|date:"d/m/Y H:i" }}
+                                            {% if message.sender_id == request.session.user_id %}
+                                                - Tú
+                                            {% else %}
+                                                - Cliente
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-comment-slash fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay mensajes aún</h5>
+                            <p class="text-muted">Los mensajes aparecerán aquí cuando los clientes hagan preguntas.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Formulario para responder -->
+                <div class="card-footer">
+                    <form id="chatForm" class="d-flex gap-2">
+                        <input type="hidden" id="productId" value="{{ product.id }}">
+                        <input type="hidden" id="receiverId" value="">
+                        
+                        <div class="flex-grow-1">
+                            <textarea id="messageInput" 
+                                     class="form-control" 
+                                     rows="2" 
+                                     placeholder="Escribe tu respuesta aquí..."
+                                     required></textarea>
+                        </div>
+                        
+                        <div class="d-flex flex-column gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Enviar
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshChat()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Los mensajes con información de contacto serán filtrados automáticamente.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatForm = document.getElementById('chatForm');
+    const messageInput = document.getElementById('messageInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const productId = document.getElementById('productId').value;
+    
+    // Determinar el receiver_id basado en los mensajes existentes
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.sender_id != request.session.user_id %}
+                document.getElementById('receiverId').value = '{{ message.sender_id }}';
+                break;
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    
+    // Scroll al final del chat
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Scroll inicial
+    scrollToBottom();
+    
+    // Enviar mensaje
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const message = messageInput.value.trim();
+        const receiverId = document.getElementById('receiverId').value;
+        
+        if (!message) {
+            alert('Por favor escribe un mensaje');
+            return;
+        }
+        
+        if (!receiverId) {
+            alert('No se puede determinar el destinatario del mensaje');
+            return;
+        }
+        
+        // Deshabilitar formulario
+        const submitBtn = chatForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+        
+        // Enviar mensaje
+        fetch('/api/chat/send/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                receiver_id: receiverId,
+                message: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageInput.value = '';
+                
+                // Mostrar mensaje de éxito temporal
+                showSuccessMessage('Mensaje enviado exitosamente');
+                
+                if (data.warning) {
+                    alert('Aviso: ' + data.warning);
+                }
+                
+                // Recargar mensajes
+                setTimeout(refreshChat, 500);
+            } else {
+                alert('Error: ' + (data.error || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión. Inténtalo de nuevo.');
+        })
+        .finally(() => {
+            // Rehabilitar formulario
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar';
+        });
+    });
+    
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+
+// Función para refrescar el chat
+function refreshChat() {
+    location.reload();
+}
+
+// Función para mostrar mensaje de éxito
+function showSuccessMessage(message) {
+    // Crear elemento de notificación
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(notification);
+    
+    // Remover automáticamente después de 3 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// Auto-refresh cada 30 segundos
+setInterval(refreshChat, 30000);
+</script>
+
+<style>
+#chatMessages {
+    background-color: #f8f9fa;
+}
+
+#chatMessages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatMessages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.card {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.bg-primary {
+    background-color: var(--binotinto) !important;
+}
+
+.btn-primary {
+    background-color: var(--binotinto);
+    border-color: var(--binotinto);
+}
+
+.btn-primary:hover {
+    background-color: #8B0000;
+    border-color: #8B0000;
+}
+</style>
+{% endblock %}

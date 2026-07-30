@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Finalizar Compra - Merktolima{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Información de Envío y Pago</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="checkoutForm">
+                        {% csrf_token %}
+
+                        <h5 class="mb-3">Dirección de Envío</h5>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Número de Teléfono *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                       placeholder="Ej: 3001234567" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="street" class="form-label">Dirección *</label>
+                            <input type="text" class="form-control" id="street" name="street"
+                                   placeholder="Calle, carrera, número, apartamento..." required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="city" class="form-label">Ciudad *</label>
+                                <input type="text" class="form-control" id="city" name="city" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="state" class="form-label">Departamento *</label>
+                                <select class="form-select" id="state" name="state" required>
+                                    <option value="">Seleccionar departamento</option>
+                                    <option value="Amazonas">Amazonas</option>
+                                    <option value="Antioquia">Antioquia</option>
+                                    <option value="Arauca">Arauca</option>
+                                    <option value="Atlántico">Atlántico</option>
+                                    <option value="Bolívar">Bolívar</option>
+                                    <option value="Boyacá">Boyacá</option>
+                                    <option value="Caldas">Caldas</option>
+                                    <option value="Caquetá">Caquetá</option>
+                                    <option value="Casanare">Casanare</option>
+                                    <option value="Cauca">Cauca</option>
+                                    <option value="Cesar">Cesar</option>
+                                    <option value="Chocó">Chocó</option>
+                                    <option value="Córdoba">Córdoba</option>
+                                    <option value="Cundinamarca">Cundinamarca</option>
+                                    <option value="Guainía">Guainía</option>
+                                    <option value="Guaviare">Guaviare</option>
+                                    <option value="Huila">Huila</option>
+                                    <option value="La Guajira">La Guajira</option>
+                                    <option value="Magdalena">Magdalena</option>
+                                    <option value="Meta">Meta</option>
+                                    <option value="Nariño">Nariño</option>
+                                    <option value="Norte de Santander">Norte de Santander</option>
+                                    <option value="Putumayo">Putumayo</option>
+                                    <option value="Quindío">Quindío</option>
+                                    <option value="Risaralda">Risaralda</option>
+                                    <option value="San Andrés y Providencia">San Andrés y Providencia</option>
+                                    <option value="Santander">Santander</option>
+                                    <option value="Sucre">Sucre</option>
+                                    <option value="Tolima">Tolima</option>
+                                    <option value="Valle del Cauca">Valle del Cauca</option>
+                                    <option value="Vaupés">Vaupés</option>
+                                    <option value="Vichada">Vichada</option>
+                                    <option value="Bogotá D.C.">Bogotá D.C.</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="postal_code" class="form-label">Código Postal <small class="text-muted">(opcional)</small></label>
+                                <input type="text" class="form-control" id="postal_code" name="postal_code"
+                                       placeholder="Ej: 110111">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">País</label>
+                                <input type="text" class="form-control" value="Colombia" readonly>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3">Método de Pago</h5>
+                        <div class="mb-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="payment_method"
+                                       id="credit_card" value="credit_card" checked onchange="togglePaymentFields(this.value)">
+                                <label class="form-check-label" for="credit_card">
+                                    <i class="fas fa-credit-card me-2"></i>Tarjeta de Crédito
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="payment_method"
+                                       id="debit_card" value="debit_card" onchange="togglePaymentFields(this.value)">
+                                <label class="form-check-label" for="debit_card">
+                                    <i class="fas fa-credit-card me-2"></i>Tarjeta Débito
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="payment_method"
+                                       id="pse" value="pse" onchange="togglePaymentFields(this.value)">
+                                <label class="form-check-label" for="pse">
+                                    <i class="fas fa-university me-2"></i>PSE - Pago en línea
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method"
+                                       id="cash_on_delivery" value="cash_on_delivery" onchange="togglePaymentFields(this.value)">
+                                <label class="form-check-label" for="cash_on_delivery">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Pago contra entrega
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Campos tarjeta -->
+                        <div id="card-fields">
+                            <div class="mb-3">
+                                <label for="card_number" class="form-label">Número de Tarjeta *</label>
+                                <input type="text" class="form-control" id="card_number" name="card_number"
+                                       placeholder="1234 5678 9012 3456" maxlength="19">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="card_holder" class="form-label">Nombre del Titular *</label>
+                                    <input type="text" class="form-control" id="card_holder" name="card_holder">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="expiry_date" class="form-label">Vencimiento *</label>
+                                    <input type="text" class="form-control" id="expiry_date" name="expiry_date"
+                                           placeholder="MM/AA" maxlength="5">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="cvv" class="form-label">CVV *</label>
+                                    <input type="text" class="form-control" id="cvv" name="cvv"
+                                           placeholder="123" maxlength="4">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos PSE -->
+                        <div id="pse-fields" style="display:none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Serás redirigido al portal de tu banco para completar el pago de forma segura.
+                            </div>
+                            <div class="mb-3">
+                                <label for="bank_name" class="form-label">Banco *</label>
+                                <select class="form-select" id="bank_name" name="bank_name">
+                                    <option value="">Seleccionar banco</option>
+                                    <option value="bancolombia">Bancolombia</option>
+                                    <option value="davivienda">Davivienda</option>
+                                    <option value="bbva">BBVA</option>
+                                    <option value="bogota">Banco de Bogotá</option>
+                                    <option value="occidente">Banco de Occidente</option>
+                                    <option value="popular">Banco Popular</option>
+                                    <option value="nequi">Nequi</option>
+                                    <option value="daviplata">Daviplata</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Pago contra entrega -->
+                        <div id="cod-fields" style="display:none;">
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Pagarás en efectivo cuando recibas tu pedido. Ten el monto exacto listo.
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'marketplace:cart' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Carrito
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-shopping-bag me-2"></i>Realizar Pedido
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen del pedido -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0">Resumen del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    {% if cart.items %}
+                        {% for item in cart.items %}
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong class="small">{{ item.product.name }}</strong><br>
+                                <small class="text-muted">Cant: {{ item.quantity }}</small>
+                            </div>
+                            <span class="small">
+                                {% if item.total_price %}
+                                    ${{ item.total_price|floatformat:0 }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endfor %}
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <strong>Total:</strong>
+                            <strong class="text-primary">
+                                {% if cart.total_amount %}
+                                    ${{ cart.total_amount|floatformat:0 }} COP
+                                {% endif %}
+                            </strong>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Tu carrito está vacío</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePaymentFields(method) {
+    var cardFields = document.getElementById('card-fields');
+    var pseFields = document.getElementById('pse-fields');
+    var codFields = document.getElementById('cod-fields');
+    cardFields.style.display = 'none';
+    pseFields.style.display = 'none';
+    codFields.style.display = 'none';
+    if (method === 'credit_card' || method === 'debit_card') {
+        cardFields.style.display = 'block';
+    } else if (method === 'pse') {
+        pseFields.style.display = 'block';
+    } else if (method === 'cash_on_delivery') {
+        codFields.style.display = 'block';
+    }
+}
+
+// Format card number with spaces
+document.addEventListener('DOMContentLoaded', function() {
+    var cardInput = document.getElementById('card_number');
+    if (cardInput) {
+        cardInput.addEventListener('input', function(e) {
+            var val = e.target.value.replace(/\D/g, '').substring(0, 16);
+            var formatted = val.replace(/(.{4})/g, '$1 ').trim();
+            e.target.value = formatted;
+        });
+    }
+    var expiryInput = document.getElementById('expiry_date');
+    if (expiryInput) {
+        expiryInput.addEventListener('input', function(e) {
+            var val = e.target.value.replace(/\D/g, '').substring(0, 4);
+            if (val.length >= 2) val = val.substring(0, 2) + '/' + val.substring(2);
+            e.target.value = val;
+        });
+    }
+});
+</script>
+{% endblock %}

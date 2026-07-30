@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Iniciar Sesión - Merktolima{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold" style="color: var(--binotinto);">
+                            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                        </h2>
+                        <p class="text-muted">Accede a tu cuenta de Merktolima</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="tu@email.com" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-semibold">Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       placeholder="Tu contraseña" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center">
+                        <p class="text-muted mb-0">
+                            ¿No tienes cuenta? 
+                            <a href="{% url 'marketplace:register' %}" class="text-decoration-none fw-semibold" 
+                               style="color: var(--binotinto);">
+                                Regístrate aquí
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo credentials -->
+            <div class="card mt-4 border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">
+                        <i class="fas fa-info-circle me-2"></i>Credenciales de Prueba
+                    </h6>
+                    <p class="card-text small mb-2">
+                        <strong>Comprador:</strong> comprador@merkatolima.com / Comprador123<br>
+                        <strong>Vendedor:</strong> vendedor@merkatolima.com / Vendedor123
+                    </p>
+                    <button class="btn btn-outline-warning btn-sm me-2" onclick="fillCredentials('buyer')">
+                        Usar Comprador
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="fillCredentials('seller')">
+                        Usar Vendedor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fillCredentials(type) {
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    
+    if (type === 'buyer') {
+        emailInput.value = 'comprador@merkatolima.com';
+        passwordInput.value = 'Comprador123';
+    } else if (type === 'seller') {
+        emailInput.value = 'vendedor@merkatolima.com';
+        passwordInput.value = 'Vendedor123';
+    }
+}
+</script>
+{% endblock %}

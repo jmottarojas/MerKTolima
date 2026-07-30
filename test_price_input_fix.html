@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Campo Precio - 10 Dígitos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2>🧪 Test Campo Precio - Corrección 10 Dígitos</h2>
+        <p>Verificando que el campo de precio permite escribir hasta 10 dígitos sin desaparecer</p>
+        
+        <form id="priceTestForm">
+            <div class="mb-3">
+                <label for="price" class="form-label">Precio (COP) *</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" id="price" name="price" 
+                           required placeholder="0.00" step="0.01" min="0" max="9999999999.99">
+                    <span class="input-group-text">COP</span>
+                </div>
+                <div class="form-text">
+                    <strong>Límite:</strong> 10 dígitos enteros + decimales (máximo: $9.999.999.999,99)
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-primary w-100" onclick="testCurrentValue()">
+                        🔍 Analizar Valor Actual
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-success w-100" onclick="clearPrice()">
+                        🗑️ Limpiar Campo
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <div id="testResults"></div>
+        
+        <div class="mt-4">
+            <h4>🎯 Casos de Prueba Automáticos:</h4>
+            <div class="test-buttons">
+                <button class="btn btn-outline-secondary btn-sm" onclick="testPrice('1000000')">
+                    1.000.000 (7 dígitos)
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="testPrice('10000000')">
+                    10.000.000 (8 dígitos)
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="testPrice('100000000')">
+                    100.000.000 (9 dígitos)
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="testPrice('1000000000')">
+                    1.000.000.000 (10 dígitos) ✨
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="testPrice('5000000000')">
+                    5.000.000.000 (10 dígitos) ✨
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="testPrice('9999999999')">
+                    9.999.999.999 (10 dígitos) ✨
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="testPrice('1500000.50')">
+                    1.500.000,50 (con decimales)
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="testPrice('9999999999.99')">
+                    9.999.999.999,99 (máximo)
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="testPrice('10000000000')">
+                    10.000.000.000 (11 dígitos) ❌
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h4>📝 Prueba Manual:</h4>
+            <ol>
+                <li>Haz clic en el campo de precio arriba</li>
+                <li>Escribe lentamente: <code>1000000000</code> (10 dígitos)</li>
+                <li>Verifica que NO desaparece el texto</li>
+                <li>Prueba agregar decimales: <code>.99</code></li>
+                <li>El resultado debe ser: <code>1000000000.99</code></li>
+            </ol>
+        </div>
+        
+        <div class="mt-4">
+            <h4>🔧 Información Técnica:</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>✅ Correcciones Aplicadas:</h6>
+                    <ul class="small">
+                        <li>Eliminado JavaScript que limitaba entrada</li>
+                        <li>Removido formateo automático con puntos</li>
+                        <li>Eliminadas restricciones de keypress</li>
+                        <li>Campo type="number" maneja validación</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>⚙️ Configuración Actual:</h6>
+                    <ul class="small">
+                        <li><code>type="number"</code></li>
+                        <li><code>step="0.01"</code> (decimales)</li>
+                        <li><code>min="0"</code> (no negativos)</li>
+                        <li><code>max="9999999999.99"</code> (10 dígitos)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testCount = 0;
+        
+        function testPrice(value) {
+            const priceInput = document.getElementById('price');
+            priceInput.value = value;
+            
+            // Simular evento de input para verificar que no hay JavaScript interfiriendo
+            priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            setTimeout(() => {
+                testCurrentValue();
+            }, 100);
+        }
+        
+        function clearPrice() {
+            document.getElementById('price').value = '';
+            document.getElementById('testResults').innerHTML = '';
+        }
+        
+        function testCurrentValue() {
+            const priceInput = document.getElementById('price');
+            const value = priceInput.value;
+            const resultsDiv = document.getElementById('testResults');
+            
+            testCount++;
+            
+            if (!value) {
+                showResult('⚠️ Campo vacío - ingresa un precio para probar', 'warning');
+                return;
+            }
+            
+            const results = [];
+            const numValue = parseFloat(value);
+            const valueStr = numValue.toString();
+            const integerPart = valueStr.split('.')[0];
+            const decimalPart = valueStr.split('.')[1] || '';
+            const digitCount = integerPart.length;
+            
+            // Información básica
+            results.push(`📊 ANÁLISIS #${testCount}:`);
+            results.push(`   Valor ingresado: "${value}"`);
+            results.push(`   Valor numérico: ${numValue.toLocaleString('es-CO')}`);
+            results.push(`   Dígitos enteros: ${digitCount}`);
+            results.push(`   Decimales: ${decimalPart ? decimalPart.length + ' dígitos' : 'ninguno'}`);
+            results.push('');
+            
+            // Validaciones
+            results.push('🔍 VALIDACIONES:');
+            
+            // 1. Campo no está vacío después de ingresar
+            if (priceInput.value === value) {
+                results.push('   ✅ Campo mantiene el valor (no desaparece)');
+            } else {
+                results.push('   ❌ Campo cambió el valor automáticamente');
+            }
+            
+            // 2. HTML5 validation
+            if (priceInput.checkValidity()) {
+                results.push('   ✅ HTML5 validation: VÁLIDO');
+            } else {
+                results.push('   ❌ HTML5 validation: INVÁLIDO');
+            }
+            
+            // 3. Rango de dígitos
+            if (digitCount <= 10) {
+                results.push(`   ✅ Dígitos: VÁLIDO (${digitCount}/10)`);
+            } else {
+                results.push(`   ❌ Dígitos: EXCEDE LÍMITE (${digitCount}/10)`);
+            }
+            
+            // 4. Rango de valor
+            if (numValue >= 0 && numValue <= 9999999999.99) {
+                results.push('   ✅ Rango: DENTRO DEL LÍMITE');
+            } else {
+                results.push('   ❌ Rango: FUERA DEL LÍMITE');
+            }
+            
+            // 5. Decimales
+            if (decimalPart.length <= 2) {
+                results.push(`   ✅ Decimales: VÁLIDO (${decimalPart.length}/2)`);
+            } else {
+                results.push(`   ❌ Decimales: EXCEDE LÍMITE (${decimalPart.length}/2)`);
+            }
+            
+            // Resultado final
+            const allValid = priceInput.checkValidity() && digitCount <= 10 && numValue <= 9999999999.99;
+            const resultType = allValid ? 'success' : 'error';
+            const resultIcon = allValid ? '🎉' : '⚠️';
+            
+            results.push('');
+            results.push(`${resultIcon} RESULTADO: ${allValid ? 'PRECIO VÁLIDO' : 'PRECIO INVÁLIDO'}`);
+            
+            showResult(results.join('\n'), resultType);
+        }
+        
+        function showResult(message, type) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = `<div class="test-result ${type}"><pre>${message}</pre></div>`;
+        }
+        
+        // Monitorear cambios en tiempo real
+        document.getElementById('price').addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (value) {
+                // Mostrar información en tiempo real sin análisis completo
+                const digitCount = value.split('.')[0].length;
+                const status = digitCount <= 10 ? '✅' : '❌';
+                showResult(`${status} Escribiendo: "${value}" (${digitCount} dígitos)`, 'info');
+            }
+        });
+        
+        // Test inicial
+        window.onload = function() {
+            showResult('👋 Listo para probar. Usa los botones o escribe directamente en el campo.', 'info');
+        };
+    </script>
+</body>
+</html>

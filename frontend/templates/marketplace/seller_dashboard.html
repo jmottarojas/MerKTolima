@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Panel de Vendedor - Merktolima{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="fw-bold mb-3">
+                <i class="fas fa-store me-2" style="color: var(--binotinto);"></i>
+                Panel de Vendedor
+            </h1>
+            <p class="text-muted">Gestiona tus productos y pedidos desde aquí</p>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-box fa-3x" style="color: var(--binotinto);"></i>
+                    </div>
+                    <h3 class="fw-bold">{{ products_count }}</h3>
+                    <p class="text-muted mb-0">Productos Activos</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-shopping-cart fa-3x" style="color: var(--amarillo-oro);"></i>
+                    </div>
+                    <h3 class="fw-bold">{{ orders_count }}</h3>
+                    <p class="text-muted mb-0">Pedidos Recibidos</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-dollar-sign fa-3x" style="color: var(--binotinto);"></i>
+                    </div>
+                    <h3 class="fw-bold">$0</h3>
+                    <p class="text-muted mb-0">Ventas del Mes</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="fas fa-star fa-3x" style="color: var(--amarillo-oro);"></i>
+                    </div>
+                    <h3 class="fw-bold">5.0</h3>
+                    <p class="text-muted mb-0">Calificación</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones rápidas -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'marketplace:create_product' %}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-2"></i>Nuevo Producto
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'marketplace:seller_products' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-box me-2"></i>Mis Productos
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'marketplace:seller_orders' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-shopping-cart me-2"></i>Mis Pedidos
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'marketplace:profile' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-user me-2"></i>Mi Perfil
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Productos recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-box me-2"></i>Productos Recientes
+                    </h5>
+                    <a href="{% url 'marketplace:seller_products' %}" class="btn btn-sm btn-outline-primary">
+                        Ver todos
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if products %}
+                        {% for product in products|slice:":5" %}
+                            <div class="d-flex align-items-center mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                <div class="me-3">
+                                    {% if product.images %}
+                                        <img src="{{ product.images.0 }}" class="rounded" 
+                                             alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-light d-flex align-items-center justify-content-center rounded" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ product.name }}</h6>
+                                    <small class="text-muted">{{ product.category }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold">{{ product.price|format_cop_simple }}</div>
+                                    <small class="text-muted">{{ product.inventory_quantity }} en stock</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-box fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No tienes productos aún</p>
+                            <a href="{% url 'marketplace:create_product' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Crear Primer Producto
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pedidos recientes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>Pedidos Recientes
+                    </h5>
+                    <a href="{% url 'marketplace:seller_orders' %}" class="btn btn-sm btn-outline-primary">
+                        Ver todos
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                        {% for order in orders|slice:":5" %}
+                            <div class="d-flex align-items-center justify-content-between mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                                <div>
+                                    <h6 class="mb-1">Pedido #{{ order.id|slice:":8" }}</h6>
+                                    <small class="text-muted">{{ order.created_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold">{{ order.total_amount|format_cop_simple }}</div>
+                                    <span class="badge 
+                                        {% if order.status == 'pending' %}bg-warning text-dark
+                                        {% elif order.status == 'confirmed' %}bg-info
+                                        {% elif order.status == 'shipped' %}bg-primary
+                                        {% elif order.status == 'delivered' %}bg-success
+                                        {% elif order.status == 'cancelled' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ order.status|title }}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No tienes pedidos aún</p>
+                            <small class="text-muted">Los pedidos aparecerán aquí cuando los clientes compren tus productos</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
