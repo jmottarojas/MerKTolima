@@ -15,7 +15,12 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-merkatolima-dev-key-2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = [
+    'merktolima.com',
+    'www.merktolima.com',
+    'localhost',
+    '127.0.0.1'
+]
 
 # Application definition
 INSTALLED_APPS = [
