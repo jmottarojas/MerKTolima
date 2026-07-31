@@ -18,6 +18,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = [
     'merktolima.com',
     'www.merktolima.com',
+    'merktolima-1.onrender.com',
     'localhost',
     '127.0.0.1'
 ]
